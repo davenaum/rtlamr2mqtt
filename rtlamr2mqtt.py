@@ -30,6 +30,9 @@ mqtt_host = config['mqtt']['host']
 mqtt_port = int(config['mqtt']['port'])
 mqtt_topic = '/rtlamr/{}/state'
 
+# build general configuration
+sleep_time = int(config['general']['sleep_for'])
+
 # build rtlamr configuration
 protocols = []
 meter_ids = []
@@ -95,7 +98,7 @@ while True:
                 hostname=mqtt_host,
                 port=mqtt_port)
 
-        time.sleep(20)
+        time.sleep(sleep_time)
 
     except Exception as e:
         print('{} Exception squashed! {}: {}'.format(str(datetime.now()), e.__class__.__name__, e), file=sys.stderr)
