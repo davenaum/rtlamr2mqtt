@@ -22,23 +22,15 @@ signal.signal(signal.SIGTERM, shutdown)
 signal.signal(signal.SIGINT, shutdown)
 
 
-# send data to MQTT broker defined in settings
-def send_mqtt(topic, payload, host, port):
-    try:
-        publish.single(topic, payload=payload, qos=1, hostname=host, port=port)
-    except Exception as ex:
-        print("MQTT Publish Failed: " + str(ex), file=sys.stderr)
-
-
 with open('/etc/rtlamr2mqtt.yaml','r') as config_file:
   config = yaml.safe_load(config_file)
 
-# Build mqtt configuration
+# build mqtt configuration
 mqtt_host = config['mqtt']['host']
 mqtt_port = int(config['mqtt']['port'])
 mqtt_topic = '/rtlamr/{}/state'
 
-# Build rtlamr configuration
+# build rtlamr configuration
 protocols = []
 meter_ids = []
 for idx,meter in enumerate(config['meters']):
@@ -49,14 +41,21 @@ rtlamr_custom = []
 if 'custom_parameters' in config:
     if 'rtlamr' in config['custom_parameters']:
         rtlamr_custom = config['custom_parameters']['rtlamr'].split(' ')
-rtlamr_cmd = ['/usr/bin/rtlamr', '-msgtype={}'.format(','.join(protocols)), '-format=csv', '-filterid={}'.format(','.join(meter_ids))] + rtlamr_custom
+rtlamr_cmd = [
+    '/usr/bin/rtlamr',
+    '-msgtype={}'.format(','.join(protocols)),
+    '-format=csv',
+    '-filterid={}'.format(','.join(meter_ids))
+    ] + rtlamr_custom
 
-# Build rtl_tcp command
+# build rtl_tcp command
 rtltcp_custom = []
 if 'custom_parameters' in config:
     if 'rtltcp' in config['custom_parameters']:
         rtltcp_custom = config['custom_parameters']['rtltcp'].split(' ')
 rtltcp_cmd = ["/usr/bin/rtl_tcp"] + rtltcp_custom
+
+
 
 
 # start the rtl_tcp program
@@ -73,20 +72,26 @@ while True:
 
         # proper scm+ results have 10 fields
         if len(flds) != 10:
-            print("Received result with unexpected number of fields: '" + amrline + "'", file=sys.stderr)
+            print('{} Received result with unexpected number of fields: \'{}\''.format(str(datetime.now()), amrline), file=sys.stderr)
             continue
 
         # make sure the meter id is one we want
         meter_id = flds[6]
         if meter_id not in meter_ids:
-            print("Received result with unexpected meter id: " + meter_id, file=sys.stderr)
+            print('{} Received result with unexpected meter id: {}'.format(str(datetime.now()), meter_id), file=sys.stderr)
             continue
 
         # get meter reading
         meter_value = flds[7]
 
         print('{} Sending meter {} reading: {}'.format(str(datetime.now()), meter_id, meter_value), file=sys.stderr)
-        send_mqtt('/rtlamr/{}/meter_reading'.format(meter_id), meter_value, mqtt_host, mqtt_port)
+        publish.single(
+                topic='/rtlamr/{}/meter_reading'.format(meter_id),
+                payload=meter_value,
+                qos=1,
+                retain=True,
+                hostname=mqtt_host,
+                port=mqtt_port)
 
     except Exception as e:
         print('Exception squashed! {}: {}', e.__class__.__name__, e, file=sys.stderr)
