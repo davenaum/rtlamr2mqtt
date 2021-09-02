@@ -45,7 +45,8 @@ rtlamr_cmd = [
     '/usr/bin/rtlamr',
     '-msgtype={}'.format(','.join(protocols)),
     '-format=csv',
-    '-filterid={}'.format(','.join(meter_ids))
+    '-filterid={}'.format(','.join(meter_ids)),
+    '-single=true'
     ] + rtlamr_custom
 
 # build rtl_tcp command
@@ -62,11 +63,12 @@ rtltcp_cmd = ["/usr/bin/rtl_tcp"] + rtltcp_custom
 rtltcp = subprocess.Popen(rtltcp_cmd, shell=True, close_fds=True)
 time.sleep(5)
 
-# start the rtlamr program.
-rtlamr = subprocess.Popen(rtlamr_cmd, stdout=subprocess.PIPE, universal_newlines=True)
 
 while True:
     try:
+        # start the rtlamr program.
+        rtlamr = subprocess.Popen(rtlamr_cmd, stdout=subprocess.PIPE, universal_newlines=True)
+
         amrline = rtlamr.stdout.readline().strip()
         flds = amrline.split(',')
 
@@ -93,6 +95,8 @@ while True:
                 hostname=mqtt_host,
                 port=mqtt_port)
 
+        time.sleep(20)
+
     except Exception as e:
-        print('Exception squashed! {}: {}', e.__class__.__name__, e, file=sys.stderr)
+        print('{} Exception squashed! {}: {}'.format(str(datetime.now()), e.__class__.__name__, e), file=sys.stderr)
         time.sleep(2)
