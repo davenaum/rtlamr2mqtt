@@ -60,15 +60,12 @@ if 'custom_parameters' in config:
 rtltcp_cmd = ["/usr/bin/rtl_tcp"] + rtltcp_custom
 
 
-
-
-# start the rtl_tcp program
-rtltcp = subprocess.Popen(rtltcp_cmd, shell=True, close_fds=True)
-time.sleep(5)
-
-
 while True:
     try:
+        # start the rtl_tcp program
+        rtltcp = subprocess.Popen(rtltcp_cmd, shell=True, close_fds=True)
+        time.sleep(5)
+
         # start the rtlamr program.
         rtlamr = subprocess.Popen(rtlamr_cmd, stdout=subprocess.PIPE, universal_newlines=True)
 
