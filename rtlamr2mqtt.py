@@ -83,13 +83,12 @@ while True:
             print('{} Received result with unexpected meter id: {}'.format(str(datetime.now()), meter_id), file=sys.stderr)
             continue
 
-        # get meter reading
-        meter_value = flds[7]
+        mqtt_payload = '{ "meter_value": "' + str(flds[7]) + '", "meter_time": "' + flds[0]+ '" }'
 
-        print('{} Sending meter {} reading: {}'.format(str(datetime.now()), meter_id, meter_value), file=sys.stderr)
+        print('{} Sending meter {}: {}'.format(str(datetime.now()), meter_id, mqtt_payload), file=sys.stderr)
         publish.single(
                 topic='/rtlamr/{}/meter_reading'.format(meter_id),
-                payload=meter_value,
+                payload=mqtt_payload,
                 qos=1,
                 retain=True,
                 hostname=mqtt_host,
