@@ -8,8 +8,8 @@ RUN apk update \
     && apk add rtl-sdr \
     && pip3 install -r /tmp/requirements.txt \
     && chmod 755 /usr/bin/rtlamr2mqtt.py \
-    && apk add go \
-    && apk add git \
+    && apk --no-cache add go \
+    && apk --no-cache add git \
     && export GOPATH=/tmp \
     && go get github.com/bemasher/rtlamr \
     && cp /tmp/bin/rtlamr /usr/bin/rtlamr \
