@@ -69,7 +69,7 @@ while True:
         # start the rtlamr program.
         rtlamr = subprocess.Popen(rtlamr_cmd, stdout=subprocess.PIPE, universal_newlines=True)
 
-        amrline = rtlamr.stdout.readline().strip()
+        amrline, stderrors = rtlamr.communicate(timeout=180)
         flds = amrline.split(',')
 
         # proper scm+ results have 10 fields
@@ -94,8 +94,19 @@ while True:
                 hostname=mqtt_host,
                 port=mqtt_port)
 
+        rtltcp.kill()
+        outs, errs = rtltcp.communicate()
+        rtlamr.kill()
+        outs, errs = rtlamr.communicate()
+
         time.sleep(sleep_time)
 
     except Exception as e:
         print('{} Exception squashed! {}: {}'.format(str(datetime.now()), e.__class__.__name__, e), file=sys.stderr)
+
+        rtltcp.kill()
+        outs, errs = rtltcp.communicate()
+        rtlamr.kill()
+        outs, errs = rtlamr.communicate()
+
         time.sleep(2)
