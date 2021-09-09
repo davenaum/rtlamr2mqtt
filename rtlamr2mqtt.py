@@ -4,6 +4,7 @@ import os
 import subprocess
 import signal
 import sys
+import fcntl
 import time
 import yaml
 import paho.mqtt.publish as publish
@@ -22,6 +23,19 @@ signal.signal(signal.SIGTERM, shutdown)
 signal.signal(signal.SIGINT, shutdown)
 
 
+# Equivalent of the _IO('U', 20) constant in the linux kernel.
+USBDEVFS_RESET = ord('U') << (4*2) | 20
+
+def send_reset(dev_path):
+    # Sends the USBDEVFS_RESET IOCTL to a USB device.
+    # dev_path - The devfs path to the USB device (under /dev/bus/usb/)
+    fd = os.open(dev_path, os.O_WRONLY)
+    try:
+        fcntl.ioctl(fd, USBDEVFS_RESET, 0)
+    finally:
+        os.close(fd)
+
+
 with open('/etc/rtlamr2mqtt.yaml','r') as config_file:
   config = yaml.safe_load(config_file)
 
@@ -32,6 +46,9 @@ mqtt_topic = '/rtlamr/{}/state'
 
 # build general configuration
 sleep_time = int(config['general']['sleep_for'])
+usb_device = config['general']['usb_device']
+
+print("USB device: " + usb_device, file=sys.stderr)
 
 # build rtlamr configuration
 protocols = []
@@ -74,14 +91,12 @@ while True:
 
         # proper scm+ results have 10 fields
         if len(flds) != 10:
-            print('{} Received result with unexpected number of fields: \'{}\''.format(str(datetime.now()), amrline), file=sys.stderr)
-            continue
+            raise Exception('Received result with unexpected number of fields. Output: ' + amrline)
 
         # make sure the meter id is one we want
         meter_id = flds[6]
         if meter_id not in meter_ids:
-            print('{} Received result with unexpected meter id: {}'.format(str(datetime.now()), meter_id), file=sys.stderr)
-            continue
+            raise Exception('Received result with unexpected meter id: ' + meter_id)
 
         mqtt_payload = '{ "meter_value": "' + str(flds[7]) + '", "meter_time": "' + flds[0]+ '" }'
 
@@ -109,4 +124,8 @@ while True:
         rtlamr.kill()
         outs, errs = rtlamr.communicate()
 
-        time.sleep(2)
+        # Reset the USB device
+        send_reset(usb_device)
+
+        time.sleep(sleep_time)
+
