@@ -40,7 +40,7 @@ def build_rtlamr_args(config):
     # Build the command line arguments for the rtlamr command
     # based on the configuration file
     meters = config['meters']
-    default_args = [ '-format=json', '-unique=true' ]
+    default_args = [ '-format=csv', '-unique=true' ]
     rtltcp_host = [ f'-server={config["general"]["rtltcp_host"]}' ]
     if 'rtlamr' in config['custom_parameters']:
         custom_parameters = config['custom_parameters']['rtlamr'].split()
